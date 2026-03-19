@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from enum import Enum
+from datetime import datetime
+from typing import Optional
 
 # Дублируем Enum для Pydantic, чтобы фронтенд мог присылать строки
 class RoleEnum(str, Enum):
@@ -46,3 +48,36 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class OrderCreate(BaseModel):
+    title: str
+    config_type: str
+    description: str
+    budget: float
+
+class OrderResponse(BaseModel):
+    id: int
+    customer_id: int
+    worker_id: Optional[int] = None
+    title: str
+    config_type: str
+    description: str
+    budget: float
+    status: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class BidCreate(BaseModel):
+    price: float
+    comment: str
+
+class BidResponse(BaseModel):
+    id: int
+    order_id: int
+    worker_id: int
+    price: float
+    comment: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

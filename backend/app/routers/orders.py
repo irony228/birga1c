@@ -1,0 +1,81 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from app.database import get_db
+from app.models import Order, User, RoleEnum, OrderStatus, Bid
+from app.schemas import OrderCreate, OrderResponse
+from app.auth import get_current_user
+
+router = APIRouter(prefix="/orders", tags=["Orders (Заказы)"])
+
+@router.post("/", response_model=OrderResponse)
+async def create_order(
+    order: OrderCreate, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем, что заказ создает заказчик
+    if current_user.role != RoleEnum.customer:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Только заказчики могут создавать заказы"
+        )
+    
+    new_order = Order(
+        customer_id=current_user.id,
+        title=order.title,
+        config_type=order.config_type,
+        description=order.description,
+        budget=order.budget
+    )
+    db.add(new_order)
+    await db.commit()
+    await db.refresh(new_order)
+    return new_order
+
+@router.get("/", response_model=list[OrderResponse])
+async def get_orders(db: AsyncSession = Depends(get_db)):
+    # Выводим все заказы (лента)
+    # Позже сюда добавим фильтры по статусу 'open' и конфигурации
+    result = await db.execute(select(Order).order_by(Order.created_at.desc()))
+    return result.scalars().all()
+
+@router.post("/{order_id}/accept/{bid_id}")
+async def accept_bid(
+    order_id: int, 
+    bid_id: int, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # 1. Ищем заказ
+    order_result = await db.execute(select(Order).where(Order.id == order_id))
+    order = order_result.scalars().first()
+    
+    if not order or order.customer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Это не ваш заказ")
+    if order.status != OrderStatus.open:
+        raise HTTPException(status_code=400, detail="Исполнитель уже выбран или заказ закрыт")
+
+    # 2. Ищем отклик
+    bid_result = await db.execute(select(Bid).where(Bid.id == bid_id, Bid.order_id == order_id))
+    bid = bid_result.scalars().first()
+    
+    if not bid:
+        raise HTTPException(status_code=404, detail="Отклик не найден")
+
+    # 3. ПРОВЕРКА БАЛАНСА И ХОЛДИРОВАНИЕ (Безопасная сделка)
+    # Сравниваем баланс с бюджетом заказа (или ценой из отклика, здесь возьмем бюджет заказа для простоты)
+    if current_user.balance < order.budget:
+        raise HTTPException(status_code=400, detail="Недостаточно средств на балансе. Пополните счет.")
+
+    # Списываем с основного баланса и переводим в замороженный
+    current_user.balance -= order.budget
+    current_user.frozen_balance += order.budget
+
+    # 4. Обновляем статус заказа
+    order.status = OrderStatus.in_progress
+    order.worker_id = bid.worker_id
+
+    await db.commit()
+    return {"message": "Исполнитель выбран, средства заморожены", "order_status": order.status.value}
