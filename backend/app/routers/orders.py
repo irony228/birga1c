@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.database import get_db
-from app.models import Order, User, RoleEnum, OrderStatus, Bid
+from app.models import Order, User, RoleEnum, OrderStatus, Bid, Notification
 from app.schemas import OrderCreate, OrderResponse
 from app.auth import get_current_user
 
@@ -79,3 +79,42 @@ async def accept_bid(
 
     await db.commit()
     return {"message": "Исполнитель выбран, средства заморожены", "order_status": order.status.value}
+
+@router.post("/{order_id}/complete")
+async def complete_order(
+    order_id: int, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # 1. Ищем заказ
+    result = await db.execute(select(Order).where(Order.id == order_id))
+    order = result.scalars().first()
+    
+    if not order or order.customer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Это не ваш заказ")
+    if order.status != OrderStatus.in_progress:
+        raise HTTPException(status_code=400, detail="Заказ еще не в работе или уже закрыт")
+
+    # 2. Ищем исполнителя
+    worker_result = await db.execute(select(User).where(User.id == order.worker_id))
+    worker = worker_result.scalars().first()
+
+    if not worker:
+        raise HTTPException(status_code=404, detail="Исполнитель не найден")
+
+    # 3. ПЕРЕВОД СРЕДСТВ (раскрытие холдирования)
+    current_user.frozen_balance -= order.budget
+    worker.balance += order.budget
+
+    # 4. Закрываем заказ
+    order.status = OrderStatus.closed
+
+    # 5. Отправляем уведомление исполнителю
+    notification = Notification(
+        user_id=worker.id,
+        message=f"Заказ '{order.title}' успешно завершен! На ваш баланс зачислено {order.budget} руб."
+    )
+    db.add(notification)
+
+    await db.commit()
+    return {"message": "Заказ завершен, средства переведены", "worker_new_balance": worker.balance}
