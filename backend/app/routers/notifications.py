@@ -14,7 +14,6 @@ async def get_my_notifications(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Получаем все уведомления текущего пользователя, новые сверху
     result = await db.execute(
         select(Notification)
         .where(Notification.user_id == current_user.id)
@@ -28,7 +27,6 @@ async def mark_as_read(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Помечаем прочитанным
     result = await db.execute(
         select(Notification).where(Notification.id == notif_id, Notification.user_id == current_user.id)
     )
