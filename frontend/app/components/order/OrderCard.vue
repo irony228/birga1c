@@ -1,29 +1,41 @@
 <template>
-  <div class="border rounded-lg p-4 hover:shadow-lg transition-shadow duration-200 bg-white">
-    <div class="flex justify-between items-start">
-      <h2 class="text-lg font-semibold">{{ order.title }}</h2>
-      <span :class="statusClass(order.status)" class="text-sm px-2 py-1 rounded">{{ order.status }}</span>
-    </div>
-    <p class="text-gray-700 mt-2">{{ order.description }}</p>
+  <UCard :class="cardThemeClass">
+    <!-- Шапка карточки -->
+    <template #header>
+      <div class="flex justify-between items-start">
+        <h2 class="text-lg font-semibold">{{ order.title }}</h2>
+        <span :class="statusClass(order.status)" class="text-sm px-2 py-1 rounded">
+          {{ order.status }}
+        </span>
+      </div>
+    </template>
 
-    <div class="mt-4 flex justify-between items-center">
-      <div class="text-sm text-gray-500">{{ order.configuration }}</div>
-      <div class="text-sm font-medium">{{ order.budget }} руб.</div>
+    <!-- Основное содержимое -->
+    <div class="mt-2 text-gray-700 dark:text-gray-200">
+      <p>{{ order.description }}</p>
+
+      <div class="mt-4 flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+        <div>{{ order.configuration }}</div>
+        <div class="font-medium text-gray-900 dark:text-gray-100">{{ order.budget }} руб.</div>
+      </div>
     </div>
 
-    <div class="mt-4 flex gap-2">
-      <button class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition">
-        Откликнуться
-      </button>
-      <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition">
-        Выбрать исполнителя
-      </button>
-    </div>
-  </div>
+    <!-- Футер карточки с кнопками -->
+    <template #footer>
+      <div class="flex gap-2">
+        <button class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition">
+          Откликнуться
+        </button>
+        <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition">
+          Выбрать исполнителя
+        </button>
+      </div>
+    </template>
+  </UCard>
 </template>
 
 <script setup>
-import { defineProps } from "vue";
+import { defineProps, computed } from "vue";
 
 defineProps({
   order: {
@@ -40,6 +52,15 @@ const statusClass = (status) => {
     default: return "bg-gray-100 text-gray-800";
   }
 };
+
+// Класс карточки, который зависит от темы
+const cardThemeClass = computed(() => {
+  return `
+    ${useColorMode().value === 'dark' 
+      ? 'bg-elevated/50 dark:bg-elevated/70' 
+      : 'bg-elevated/70 light:bg-elevated/50'}
+  `;
+});
 </script>
 
 <style scoped>

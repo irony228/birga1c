@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import User
 from app.schemas import UserCreate, UserResponse, UserLogin, Token
 from app.auth import get_password_hash, verify_password, create_access_token
+from app.auth import get_current_user # <-- добавь в импорты наверху файла
 
 router = APIRouter(prefix="/users", tags=["Users (Регистрация и профиль)"])
 
@@ -48,3 +49,17 @@ async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
         data={"sub": db_user.email, "id": db_user.id, "role": db_user.role.value}
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/top-up", response_model=UserResponse)
+async def top_up_balance(
+    amount: float, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Сумма должна быть больше нуля")
+    
+    current_user.balance += amount
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
