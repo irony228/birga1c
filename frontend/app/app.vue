@@ -40,7 +40,7 @@ useSeoMeta({
         <UColorModeButton />
 
         <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
+          to="https://github.com/irony228/birga1c"
           target="_blank"
           icon="i-simple-icons-github"
           aria-label="GitHub"
@@ -54,18 +54,18 @@ useSeoMeta({
       <NuxtPage />
     </UMain>
 
-    <USeparator icon="i-simple-icons-nuxtdotjs" />
+    <USeparator icon="file-icons:1c" />
 
     <UFooter>
       <template #left>
         <p class="text-sm text-muted">
-          Created by <ULink to="https://github.com/babuwka0" target="_blank">Babuwka0</ULink> <ULink to="https://github.com/" target="_blank">katruk</ULink> <ULink to="https://github.com/irony228" target="_blank">Irony</ULink> • © {{ new Date().getFullYear() }}
+          Created by <ULink to="https://github.com/babuwka0" target="_blank">Babuwka0</ULink> <ULink to="https://github.com/Tregyn-codein" target="_blank">Tregyn</ULink> <ULink to="https://github.com/irony228" target="_blank">Irony</ULink> • © {{ new Date().getFullYear() }}
         </p>
       </template>
 
       <template #right>
         <UButton
-          to="https://github.com/irony228/birga1c-front"
+          to="https://github.com/irony228/birga1c"
           target="_blank"
           icon="i-simple-icons-github"
           aria-label="GitHub"
