@@ -24,8 +24,8 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     name = Column(String(100))
     role = Column(Enum(RoleEnum), nullable=False)
-    balance = Column(Float, default=0.0)  # Для фиктивного пополнения
-    frozen_balance = Column(Float, default=0.0)  # Замороженные средства (безопасная сделка)
+    balance = Column(Float, default=0.0)  
+    frozen_balance = Column(Float, default=0.0)  
 
     orders = relationship("Order", back_populates="customer", foreign_keys="Order.customer_id")
     bids = relationship("Bid", back_populates="worker")
@@ -36,10 +36,10 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("users.id"))
-    worker_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Появится, когда выберут исполнителя
+    worker_id = Column(Integer, ForeignKey("users.id"), nullable=True)  
 
     title = Column(String(200), nullable=False)
-    config_type = Column(String(100), nullable=False)  # Например: УТ, БП, ЗУП
+    config_type = Column(String(100), nullable=False)  
     description = Column(Text, nullable=False)
     budget = Column(Float, nullable=False)
     status = Column(Enum(OrderStatus), default=OrderStatus.open)
