@@ -1,4 +1,6 @@
 <script setup>
+import { computed } from 'vue'
+
 useHead({
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
@@ -18,36 +20,16 @@ useSeoMeta({
   title,
   description,
   ogTitle: title,
-  ogDescription: description,
+  ogDescription: description
 })
-
-import { computed } from 'vue'
 
 const accessToken = useCookie('access_token')
 const isAuthenticated = computed(() => !!accessToken.value)
 
-function onLogout() {
+async function onLogout() {
   accessToken.value = null
-  navigateTo('/')
+  await navigateTo('/')
 }
-
-const menuItems = [
-  [
-    {
-      label: 'Профиль',
-      icon: 'i-lucide-user',
-      to: '/profile'
-    }
-  ],
-  [
-    {
-      label: 'Выйти',
-      icon: 'i-lucide-log-out',
-      onSelect: () => onLogout()
-    }
-  ]
-]
-
 </script>
 
 <template>
@@ -61,6 +43,11 @@ const menuItems = [
 
       <template #right>
         <UColorModeButton />
+        <!-- TODO сделать проверку на текущего пользователя -->
+        <!-- что-то типа div v-if="currentUser" -->
+        <!-- UDropdownMenu с профиль мои-заказы выйти -->
+        <!-- div v-else -->
+
         <UButton
           v-if="!isAuthenticated"
           label="Вход"
@@ -68,7 +55,27 @@ const menuItems = [
           variant="ghost"
           class="font-bold rounded-full cursor-pointer"
           icon="i-lucide-arrow-right"
-          to="login"
+          to="/login"
+        />
+
+        <UButton
+          v-if="isAuthenticated"
+          label="Профиль"
+          color="neutral"
+          variant="ghost"
+          class="font-bold rounded-full cursor-pointer"
+          icon="i-lucide-user"
+          to="/profile"
+        />
+
+        <UButton
+          v-if="isAuthenticated"
+          label="Выйти"
+          color="neutral"
+          variant="ghost"
+          class="font-bold rounded-full cursor-pointer"
+          icon="i-lucide-log-out"
+          @click="onLogout"
         />
         <UDropdownMenu
           v-else
