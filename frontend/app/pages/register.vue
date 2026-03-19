@@ -25,23 +25,6 @@
         </UFormField>
 
         <UFormField
-          label="Пароль"
-          name="password"
-          :error="errors.password || undefined"
-          required
-          class="w-full"
-        >
-          <UInput
-            v-model="password"
-            type="password"
-            autocomplete="new-password"
-            placeholder="••••••••"
-            required
-            class="w-full"
-          />
-        </UFormField>
-
-        <UFormField
           label="Имя"
           name="name"
           :error="errors.name || undefined"
@@ -53,6 +36,23 @@
             type="text"
             autocomplete="name"
             placeholder="Как к вам обращаться"
+            required
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField
+          label="Пароль"
+          name="password"
+          :error="errors.password || undefined"
+          required
+          class="w-full"
+        >
+          <UInput
+            v-model="password"
+            type="password"
+            autocomplete="new-password"
+            placeholder="••••••••"
             required
             class="w-full"
           />
