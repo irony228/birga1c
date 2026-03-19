@@ -77,6 +77,26 @@ async function onLogout() {
           icon="i-lucide-log-out"
           @click="onLogout"
         />
+        <UDropdownMenu
+          v-else
+          :items="menuItems"
+          :content="{
+            align: 'end',
+            side: 'bottom'
+          }"
+        >
+          <UButton
+            variant="ghost"
+            color="neutral"
+            icon="i-lucide-user"
+            aria-label="Меню пользователя"
+            class="font-bold cursor-pointer"
+            trailing-icon="i-lucide-chevron-down"
+          >
+            Профиль
+          </UButton>
+        </UDropdownMenu>
+        
       </template>
     </UHeader>
 
