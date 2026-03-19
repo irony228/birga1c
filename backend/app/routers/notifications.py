@@ -10,6 +10,7 @@ from app.auth import get_current_user
 router = APIRouter(prefix="/notifications", tags=["Notifications (Уведомления)"])
 
 @router.get("/", response_model=list[NotificationResponse])
+# Возвращает уведомления текущего пользователя.
 async def get_my_notifications(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -22,6 +23,7 @@ async def get_my_notifications(
     return result.scalars().all()
 
 @router.post("/{notif_id}/read")
+# Помечает уведомление как прочитанное.
 async def mark_as_read(
     notif_id: int,
     db: AsyncSession = Depends(get_db),

@@ -12,6 +12,7 @@ router = APIRouter(prefix="/users", tags=["Users (Регистрация и пр
 
 
 @router.post("/register", response_model=UserResponse)
+# Регистрирует пользователя в системе.
 async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     
     result = await db.execute(select(User).where(User.email == user.email))
@@ -32,6 +33,7 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
+# Логинит пользователя и выдаёт JWT-токен.
 async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
     
     result = await db.execute(select(User).where(User.email == user.email))
@@ -51,6 +53,7 @@ async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/top-up", response_model=UserResponse)
+# Пополняет баланс текущего пользователя.
 async def top_up_balance(
     amount: float, 
     db: AsyncSession = Depends(get_db),

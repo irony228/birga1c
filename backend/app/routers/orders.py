@@ -10,6 +10,7 @@ from app.auth import get_current_user
 router = APIRouter(prefix="/orders", tags=["Orders (Заказы)"])
 
 @router.post("/", response_model=OrderResponse)
+# Создаёт заказ (только заказчик) в статусе открыт.
 async def create_order(
     order: OrderCreate, 
     db: AsyncSession = Depends(get_db),
@@ -34,12 +35,14 @@ async def create_order(
     return new_order
 
 @router.get("/", response_model=list[OrderResponse])
+# Возвращает список заказов (лента).
 async def get_orders(db: AsyncSession = Depends(get_db)):
     
     result = await db.execute(select(Order).order_by(Order.created_at.desc()))
     return result.scalars().all()
 
 @router.post("/{order_id}/accept/{bid_id}")
+# Выбирает исполнителя: переводит деньги в заморозку и статус в в работе.
 async def accept_bid(
     order_id: int, 
     bid_id: int, 
@@ -79,6 +82,7 @@ async def accept_bid(
     return {"message": "Исполнитель выбран, средства заморожены", "order_status": order.status.value}
 
 @router.post("/{order_id}/complete")
+# Завершает заказ: размораживает деньги, закрывает заказ и создаёт уведомление.
 async def complete_order(
     order_id: int, 
     db: AsyncSession = Depends(get_db),

@@ -10,6 +10,7 @@ from app.auth import get_current_user
 router = APIRouter(prefix="/bids", tags=["Bids (Отклики)"])
 
 @router.post("/{order_id}", response_model=BidResponse)
+# Создаёт отклик на заказ (только исполнитель), если заказ открыт.
 async def create_bid(
     order_id: int, 
     bid: BidCreate, 
@@ -42,6 +43,7 @@ async def create_bid(
     return new_bid
 
 @router.get("/{order_id}", response_model=list[BidResponse])
+# Возвращает список откликов для указанного заказа.
 async def get_bids_for_order(order_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Bid).where(Bid.order_id == order_id))
     return result.scalars().all()
