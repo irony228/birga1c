@@ -19,9 +19,6 @@ useSeoMeta({
   description,
   ogTitle: title,
   ogDescription: description,
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/starter-light.png',
-  twitterImage: 'https://ui.nuxt.com/assets/templates/nuxt/starter-light.png',
-  twitterCard: 'summary_large_image'
 })
 </script>
 
@@ -32,20 +29,21 @@ useSeoMeta({
         <NuxtLink to="/">
           <AppLogo class="w-auto h-6 shrink-0" />
         </NuxtLink>
-
-        <TemplateMenu />
       </template>
 
       <template #right>
         <UColorModeButton />
-
+        <!--TODO сделать проверку на текущего пользователя-->
+        <!--что-то типа div v-if="currentUser"-->
+        <!--UDropdownMenu с профиль мои-заказы выйти-->
+        <!--div v-else-->
         <UButton
-          to="https://github.com/irony228/birga1c"
-          target="_blank"
-          icon="i-simple-icons-github"
-          aria-label="GitHub"
+          label="Вход"
           color="neutral"
           variant="ghost"
+          class="font-bold rounded-full cursor-pointer"
+          icon="i-lucide-arrow-right"
+          to="login"
         />
       </template>
     </UHeader>
