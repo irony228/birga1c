@@ -6,7 +6,6 @@
       :links="[{
         label: 'Начать',
         to: '/dashboard',
-        target: '_blank',
         trailingIcon: 'i-lucide-arrow-right',
         size: 'xl'
       }]"
