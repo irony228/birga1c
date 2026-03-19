@@ -109,11 +109,30 @@ async function onSubmit() {
 
   loading.value = true
   try {
-    // Пока нет бэкенда — только демонстрация UI.
-    await new Promise(r => setTimeout(r, 500))
+    const accessTokenCookie = useCookie('access_token')
+
+    const res = await $fetch('/api/users/login', {
+      method: 'POST',
+      body: {
+        email: email.value.trim(),
+        password: password.value
+      }
+    })
+
+    accessTokenCookie.value = res.access_token
+
     submitMessage.value = {
       type: 'success',
-      text: 'Заглушка: пока нет бэкенда, вход не выполняется.'
+      text: 'Вход выполнен. Перенаправляем...'
+    }
+
+    await navigateTo('/')
+  } catch (error) {
+    const detail = error?.data?.detail || error?.response?._data?.detail || error?.message || 'Не удалось выполнить вход'
+
+    submitMessage.value = {
+      type: 'error',
+      text: detail
     }
   } finally {
     loading.value = false
