@@ -20,6 +20,34 @@ useSeoMeta({
   ogTitle: title,
   ogDescription: description,
 })
+
+import { computed } from 'vue'
+
+const accessToken = useCookie('access_token')
+const isAuthenticated = computed(() => !!accessToken.value)
+
+function onLogout() {
+  accessToken.value = null
+  navigateTo('/')
+}
+
+const menuItems = [
+  [
+    {
+      label: 'Профиль',
+      icon: 'i-lucide-user',
+      to: '/profile'
+    }
+  ],
+  [
+    {
+      label: 'Выйти',
+      icon: 'i-lucide-log-out',
+      onSelect: () => onLogout()
+    }
+  ]
+]
+
 </script>
 
 <template>
@@ -33,11 +61,8 @@ useSeoMeta({
 
       <template #right>
         <UColorModeButton />
-        <!--TODO сделать проверку на текущего пользователя-->
-        <!--что-то типа div v-if="currentUser"-->
-        <!--UDropdownMenu с профиль мои-заказы выйти-->
-        <!--div v-else-->
         <UButton
+          v-if="!isAuthenticated"
           label="Вход"
           color="neutral"
           variant="ghost"
@@ -45,6 +70,26 @@ useSeoMeta({
           icon="i-lucide-arrow-right"
           to="login"
         />
+        <UDropdownMenu
+          v-else
+          :items="menuItems"
+          :content="{
+            align: 'end',
+            side: 'bottom'
+          }"
+        >
+          <UButton
+            variant="ghost"
+            color="neutral"
+            icon="i-lucide-user"
+            aria-label="Меню пользователя"
+            class="font-bold cursor-pointer"
+            trailing-icon="i-lucide-chevron-down"
+          >
+            Профиль
+          </UButton>
+        </UDropdownMenu>
+        
       </template>
     </UHeader>
 
