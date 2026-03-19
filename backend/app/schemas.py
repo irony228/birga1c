@@ -3,7 +3,6 @@ from enum import Enum
 from datetime import datetime
 from typing import Optional
 
-# Дублируем Enum для Pydantic, чтобы фронтенд мог присылать строки
 class RoleEnum(str, Enum):
     customer = "customer"
     worker = "worker"
@@ -17,8 +16,6 @@ class UserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def validate_password_bcrypt_limit(cls, v: str) -> str:
-        # bcrypt ограничивает длину пароля 72 байтами (UTF-8).
-        # Если пароль длиннее, passlib/bcrypt кинет ValueError.
         if len(v.encode("utf-8")) > 72:
             raise ValueError("password must be <= 72 bytes for bcrypt")
         return v
@@ -42,7 +39,6 @@ class UserResponse(BaseModel):
     balance: float
     frozen_balance: float
 
-    # Разрешаем Pydantic читать данные из моделей SQLAlchemy
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):

@@ -15,7 +15,6 @@ async def create_order(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Проверяем, что заказ создает заказчик
     if current_user.role != RoleEnum.customer:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
@@ -36,8 +35,7 @@ async def create_order(
 
 @router.get("/", response_model=list[OrderResponse])
 async def get_orders(db: AsyncSession = Depends(get_db)):
-    # Выводим все заказы (лента)
-    # Позже сюда добавим фильтры по статусу 'open' и конфигурации
+    
     result = await db.execute(select(Order).order_by(Order.created_at.desc()))
     return result.scalars().all()
 
@@ -48,7 +46,7 @@ async def accept_bid(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # 1. Ищем заказ
+    
     order_result = await db.execute(select(Order).where(Order.id == order_id))
     order = order_result.scalars().first()
     
@@ -57,23 +55,23 @@ async def accept_bid(
     if order.status != OrderStatus.open:
         raise HTTPException(status_code=400, detail="Исполнитель уже выбран или заказ закрыт")
 
-    # 2. Ищем отклик
+    
     bid_result = await db.execute(select(Bid).where(Bid.id == bid_id, Bid.order_id == order_id))
     bid = bid_result.scalars().first()
     
     if not bid:
         raise HTTPException(status_code=404, detail="Отклик не найден")
 
-    # 3. ПРОВЕРКА БАЛАНСА И ХОЛДИРОВАНИЕ (Безопасная сделка)
-    # Сравниваем баланс с бюджетом заказа (или ценой из отклика, здесь возьмем бюджет заказа для простоты)
+    
+    
     if current_user.balance < order.budget:
         raise HTTPException(status_code=400, detail="Недостаточно средств на балансе. Пополните счет.")
 
-    # Списываем с основного баланса и переводим в замороженный
+    
     current_user.balance -= order.budget
     current_user.frozen_balance += order.budget
 
-    # 4. Обновляем статус заказа
+    
     order.status = OrderStatus.in_progress
     order.worker_id = bid.worker_id
 
@@ -86,7 +84,7 @@ async def complete_order(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # 1. Ищем заказ
+    
     result = await db.execute(select(Order).where(Order.id == order_id))
     order = result.scalars().first()
     
@@ -95,21 +93,21 @@ async def complete_order(
     if order.status != OrderStatus.in_progress:
         raise HTTPException(status_code=400, detail="Заказ еще не в работе или уже закрыт")
 
-    # 2. Ищем исполнителя
+    
     worker_result = await db.execute(select(User).where(User.id == order.worker_id))
     worker = worker_result.scalars().first()
 
     if not worker:
         raise HTTPException(status_code=404, detail="Исполнитель не найден")
 
-    # 3. ПЕРЕВОД СРЕДСТВ (раскрытие холдирования)
+    
     current_user.frozen_balance -= order.budget
     worker.balance += order.budget
 
-    # 4. Закрываем заказ
+    
     order.status = OrderStatus.closed
 
-    # 5. Отправляем уведомление исполнителю
+    
     notification = Notification(
         user_id=worker.id,
         message=f"Заказ '{order.title}' успешно завершен! На ваш баланс зачислено {order.budget} руб."
