@@ -24,10 +24,26 @@ useSeoMeta({
 })
 
 const accessToken = useCookie('access_token')
-const isAuthenticated = computed(() => !!accessToken.value)
+const isAuthenticated = computed(() => {
+  const token = accessToken.value
+  return typeof token === 'string' && token.trim() !== '' && token !== 'null'
+})
+
+const menuItems = [
+  {
+    label: 'Профиль',
+    icon: 'i-lucide-user',
+    to: '/profile'
+  },
+  {
+    label: 'Выйти',
+    icon: 'i-lucide-log-out',
+    onSelect: onLogout
+  }
+]
 
 async function onLogout() {
-  accessToken.value = null
+  accessToken.value = undefined
   await navigateTo('/')
 }
 </script>
@@ -36,9 +52,21 @@ async function onLogout() {
   <UApp>
     <UHeader>
       <template #left>
-        <NuxtLink to="/">
-          <AppLogo class="w-auto h-6 shrink-0" />
-        </NuxtLink>
+        <div class="flex items-center gap-2">
+          <NuxtLink to="/">
+            <AppLogo class="w-auto h-6 shrink-0" />
+          </NuxtLink>
+          <UButton
+            v-if="isAuthenticated"
+            to="/dashboard"
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-list"
+            class="font-bold rounded-full cursor-pointer"
+          >
+            Лента заказов
+          </UButton>
+        </div>
       </template>
 
       <template #right>
@@ -58,27 +86,8 @@ async function onLogout() {
           to="/login"
         />
 
-        <UButton
-          v-if="isAuthenticated"
-          label="Профиль"
-          color="neutral"
-          variant="ghost"
-          class="font-bold rounded-full cursor-pointer"
-          icon="i-lucide-user"
-          to="/profile"
-        />
-
-        <UButton
-          v-if="isAuthenticated"
-          label="Выйти"
-          color="neutral"
-          variant="ghost"
-          class="font-bold rounded-full cursor-pointer"
-          icon="i-lucide-log-out"
-          @click="onLogout"
-        />
         <UDropdownMenu
-          v-else
+          v-if="isAuthenticated"
           :items="menuItems"
           :content="{
             align: 'end',
@@ -96,7 +105,6 @@ async function onLogout() {
             Профиль
           </UButton>
         </UDropdownMenu>
-        
       </template>
     </UHeader>
 
