@@ -13,33 +13,40 @@
 
     <UPageSection
       id="features"
-      title="Everything you need to build modern Nuxt apps"
-      description="Start with a solid foundation. This template includes all the essentials for building production-ready applications with Nuxt UI's powerful component system."
-      :features="[{
-        icon: 'i-lucide-rocket',
-        title: 'Production-ready from day one',
-        description: 'Pre-configured with TypeScript, ESLint, Tailwind CSS, and all the best practices. Focus on building features, not setting up tooling.'
-      }, {
-        icon: 'i-lucide-palette',
-        title: 'Beautiful by default',
-        description: 'Leveraging Nuxt UI\'s design system with automatic dark mode, consistent spacing, and polished components that look great out of the box.'
-      }, {
-        icon: 'i-lucide-zap',
-        title: 'Lightning fast',
-        description: 'Optimized for performance with SSR/SSG support, automatic code splitting, and edge-ready deployment. Your users will love the speed.'
-      }, {
-        icon: 'i-lucide-blocks',
-        title: '100+ components included',
-        description: 'Access Nuxt UI\'s comprehensive component library. From forms to navigation, everything is accessible, responsive, and customizable.'
-      }, {
-        icon: 'i-lucide-code-2',
-        title: 'Developer experience first',
-        description: 'Auto-imports, hot module replacement, and TypeScript support. Write less boilerplate and ship more features.'
-      }, {
-        icon: 'i-lucide-shield-check',
-        title: 'Built for scale',
-        description: 'Enterprise-ready architecture with proper error handling, SEO optimization, and security best practices built-in.'
-      }]"
+      title="Все инструменты для безопасной работы с заказами 1С"
+      description="Наша платформа помогает находить исполнителей и управлять заказами максимально удобно и безопасно."
+      :features="[
+        {
+          icon: 'i-lucide-briefcase',
+          title: 'Прозрачные сделки через Escrow',
+          description: 'Все платежи проходят через внутренний холд, чтобы гарантировать безопасность средств заказчика и исполнителя.'
+        },
+        {
+          icon: 'i-lucide-user-check',
+          title: 'Подбор проверенных исполнителей',
+          description: 'Лента заказов с фильтрацией по конфигурации и рейтингу исполнителей позволяет быстро найти подходящего специалиста.'
+        },
+        {
+          icon: 'i-lucide-bell',
+          title: 'Уведомления в реальном времени',
+          description: 'Вы всегда в курсе новых откликов, выбора исполнителя и завершения работы — никаких пропущенных событий.'
+        },
+        {
+          icon: 'i-lucide-credit-card',
+          title: 'Виртуальный баланс и тестовые пополнения',
+          description: 'Пополняйте кошелёк и тестируйте платежи без участия реальных платёжных шлюзов.'
+        },
+        {
+          icon: 'i-lucide-file-text',
+          title: 'Полное управление заказами',
+          description: 'Создавайте, редактируйте, отслеживайте статусы и подтверждайте выполнение заказов в удобном интерфейсе.'
+        },
+        {
+          icon: 'i-lucide-shield-check',
+          title: 'Надёжная защита данных',
+          description: 'RBAC, JWT-аутентификация и контроль прав доступа обеспечивают безопасную работу всех пользователей.'
+        }
+      ]"
     />
   </div>
 </template>
