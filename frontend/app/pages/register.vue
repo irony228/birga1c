@@ -42,6 +42,23 @@
         </UFormField>
 
         <UFormField
+          label="Имя"
+          name="name"
+          :error="errors.name || undefined"
+          required
+          class="w-full"
+        >
+          <UInput
+            v-model="name"
+            type="text"
+            autocomplete="name"
+            placeholder="Как к вам обращаться"
+            required
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField
           label="Повторите пароль"
           name="confirmPassword"
           :error="errors.confirmPassword || undefined"
@@ -100,13 +117,15 @@ import { ref } from 'vue'
 
 const email = ref('')
 const password = ref('')
+const name = ref('')
 const confirmPassword = ref('')
-const role = ref('Заказчик')
+const role = ref('customer')
 
 const loading = ref(false)
 const errors = ref({
   email: '',
   password: '',
+  name: '',
   confirmPassword: '',
   role: ''
 })
@@ -115,13 +134,14 @@ const submitMessage = ref(null)
 // submitMessage: { type: 'error' | 'success', text: string }
 
 const roleItems = [
-  { value: 'Заказчик', label: 'Заказчик' },
-  { value: 'Исполнитель', label: 'Исполнитель' }
+  { value: 'customer', label: 'Заказчик' },
+  { value: 'worker', label: 'Исполнитель' }
 ]
 
 function validate() {
   errors.value.email = ''
   errors.value.password = ''
+  errors.value.name = ''
   errors.value.confirmPassword = ''
   errors.value.role = ''
 
@@ -137,6 +157,11 @@ function validate() {
 
   if (!password.value) {
     errors.value.password = 'Введите пароль'
+    ok = false
+  }
+
+  if (!name.value.trim()) {
+    errors.value.name = 'Введите имя'
     ok = false
   }
 
@@ -164,11 +189,26 @@ async function onSubmit() {
 
   loading.value = true
   try {
-    // Пока нет бэкенда — только демонстрация UI.
-    await new Promise(r => setTimeout(r, 700))
+    await $fetch('/api/users/register', {
+      method: 'POST',
+      body: {
+        email: email.value.trim(),
+        password: password.value,
+        name: name.value.trim(),
+        role: role.value
+      }
+    })
+
     submitMessage.value = {
       type: 'success',
-      text: 'Заглушка: пока нет бэкенда, регистрация не выполняется.'
+      text: 'Аккаунт создан. Теперь можно войти.'
+    }
+  } catch (error) {
+    const detail = error?.data?.detail || error?.response?._data?.detail || error?.message || 'Не удалось выполнить регистрацию'
+
+    submitMessage.value = {
+      type: 'error',
+      text: detail
     }
   } finally {
     loading.value = false
