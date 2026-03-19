@@ -120,3 +120,26 @@ async def complete_order(
 
     await db.commit()
     return {"message": "Заказ завершен, средства переведены", "worker_new_balance": worker.balance}
+
+
+@router.post("/{order_id}/cancel")
+# Досрочно закрывает заказ в статусе открыт без движения денег.
+async def cancel_open_order(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(select(Order).where(Order.id == order_id))
+    order = result.scalars().first()
+
+    if not order or order.customer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Это не ваш заказ")
+    if order.status != OrderStatus.open:
+        raise HTTPException(
+            status_code=400,
+            detail="Досрочно можно закрыть только заказ в статусе open"
+        )
+
+    order.status = OrderStatus.closed
+    await db.commit()
+    return {"message": "Заказ досрочно закрыт", "order_status": order.status.value}
