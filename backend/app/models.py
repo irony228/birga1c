@@ -16,6 +16,12 @@ class OrderStatus(enum.Enum):
     closed = "closed"
 
 
+class BidStatus(enum.Enum):
+    pending = "pending"
+    accepted = "accepted"
+    rejected = "rejected"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -58,6 +64,7 @@ class Bid(Base):
     worker_id = Column(Integer, ForeignKey("users.id"))
     price = Column(Float, nullable=False)
     comment = Column(Text)
+    status = Column(Enum(BidStatus), default=BidStatus.pending, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     order = relationship("Order", back_populates="bids")

@@ -7,6 +7,13 @@ class RoleEnum(str, Enum):
     customer = "customer"
     worker = "worker"
 
+
+class BidStatusEnum(str, Enum):
+    pending = "pending"
+    accepted = "accepted"
+    rejected = "rejected"
+
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
@@ -74,6 +81,7 @@ class BidResponse(BaseModel):
     worker_id: int
     price: float
     comment: str
+    status: BidStatusEnum
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

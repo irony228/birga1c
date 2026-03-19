@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.database import get_db
-from app.models import Order, User, RoleEnum, OrderStatus, Bid, Notification
+from app.models import Bid, BidStatus, Notification, Order, OrderStatus, RoleEnum, User
 from app.schemas import OrderCreate, OrderResponse
 from app.auth import get_current_user
 
@@ -35,10 +35,70 @@ async def create_order(
     return new_order
 
 @router.get("/", response_model=list[OrderResponse])
-# Возвращает список заказов (лента).
-async def get_orders(db: AsyncSession = Depends(get_db)):
-    
-    result = await db.execute(select(Order).order_by(Order.created_at.desc()))
+# Возвращает список заказов по роли и цели
+async def get_orders(
+    scope: str = Query(..., description="customer_open|customer_in_progress|customer_closed|worker_open_available|worker_in_progress|worker_bidded_active"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # 3 списка для заказчика
+    if scope == "customer_open":
+        if current_user.role != RoleEnum.customer:
+            raise HTTPException(status_code=403, detail="Список доступен только заказчику")
+        query = select(Order).where(
+            Order.customer_id == current_user.id,
+            Order.status == OrderStatus.open,
+        )
+    elif scope == "customer_in_progress":
+        if current_user.role != RoleEnum.customer:
+            raise HTTPException(status_code=403, detail="Список доступен только заказчику")
+        query = select(Order).where(
+            Order.customer_id == current_user.id,
+            Order.status == OrderStatus.in_progress,
+        )
+    elif scope == "customer_closed":
+        if current_user.role != RoleEnum.customer:
+            raise HTTPException(status_code=403, detail="Список доступен только заказчику")
+        query = select(Order).where(
+            Order.customer_id == current_user.id,
+            Order.status == OrderStatus.closed,
+        )
+    # 3 списка для исполнителя
+    elif scope == "worker_open_available":
+        if current_user.role != RoleEnum.worker:
+            raise HTTPException(status_code=403, detail="Список доступен только исполнителю")
+        # Открытые заказы, где у исполнителя нет активного отклика.
+        subq = select(Bid.order_id).where(
+            Bid.worker_id == current_user.id,
+            Bid.status.in_([BidStatus.pending, BidStatus.accepted]),
+        )
+        query = select(Order).where(
+            Order.status == OrderStatus.open,
+            Order.id.not_in(subq),
+        )
+    elif scope == "worker_in_progress":
+        if current_user.role != RoleEnum.worker:
+            raise HTTPException(status_code=403, detail="Список доступен только исполнителю")
+        query = select(Order).where(
+            Order.worker_id == current_user.id,
+            Order.status == OrderStatus.in_progress,
+        )
+    elif scope == "worker_bidded_active":
+        if current_user.role != RoleEnum.worker:
+            raise HTTPException(status_code=403, detail="Список доступен только исполнителю")
+        query = (
+            select(Order)
+            .join(Bid, Bid.order_id == Order.id)
+            .where(
+                Bid.worker_id == current_user.id,
+                Bid.status == BidStatus.pending,
+                Order.status != OrderStatus.closed,
+            )
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Неизвестный scope")
+
+    result = await db.execute(query.order_by(Order.created_at.desc()))
     return result.scalars().all()
 
 @router.post("/{order_id}/accept/{bid_id}")
@@ -59,11 +119,13 @@ async def accept_bid(
         raise HTTPException(status_code=400, detail="Исполнитель уже выбран или заказ закрыт")
 
     
-    bid_result = await db.execute(select(Bid).where(Bid.id == bid_id, Bid.order_id == order_id))
+    bid_result = await db.execute(
+        select(Bid).where(Bid.id == bid_id, Bid.order_id == order_id, Bid.status == BidStatus.pending)
+    )
     bid = bid_result.scalars().first()
     
     if not bid:
-        raise HTTPException(status_code=404, detail="Отклик не найден")
+        raise HTTPException(status_code=404, detail="Отклик не найден или уже неактивен")
 
     
     
@@ -77,6 +139,17 @@ async def accept_bid(
     
     order.status = OrderStatus.in_progress
     order.worker_id = bid.worker_id
+    bid.status = BidStatus.accepted
+
+    other_bids_result = await db.execute(
+        select(Bid).where(
+            Bid.order_id == order_id,
+            Bid.id != bid.id,
+            Bid.status == BidStatus.pending,
+        )
+    )
+    for other_bid in other_bids_result.scalars().all():
+        other_bid.status = BidStatus.rejected
 
     await db.commit()
     return {"message": "Исполнитель выбран, средства заморожены", "order_status": order.status.value}
