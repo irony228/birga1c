@@ -1,4 +1,6 @@
 <script setup>
+import { computed } from 'vue'
+
 useHead({
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
@@ -18,8 +20,16 @@ useSeoMeta({
   title,
   description,
   ogTitle: title,
-  ogDescription: description,
+  ogDescription: description
 })
+
+const accessToken = useCookie('access_token')
+const isAuthenticated = computed(() => !!accessToken.value)
+
+async function onLogout() {
+  accessToken.value = null
+  await navigateTo('/')
+}
 </script>
 
 <template>
@@ -33,17 +43,39 @@ useSeoMeta({
 
       <template #right>
         <UColorModeButton />
-        <!--TODO сделать проверку на текущего пользователя-->
-        <!--что-то типа div v-if="currentUser"-->
-        <!--UDropdownMenu с профиль мои-заказы выйти-->
-        <!--div v-else-->
+        <!-- TODO сделать проверку на текущего пользователя -->
+        <!-- что-то типа div v-if="currentUser" -->
+        <!-- UDropdownMenu с профиль мои-заказы выйти -->
+        <!-- div v-else -->
+
         <UButton
+          v-if="!isAuthenticated"
           label="Вход"
           color="neutral"
           variant="ghost"
           class="font-bold rounded-full cursor-pointer"
           icon="i-lucide-arrow-right"
-          to="login"
+          to="/login"
+        />
+
+        <UButton
+          v-if="isAuthenticated"
+          label="Профиль"
+          color="neutral"
+          variant="ghost"
+          class="font-bold rounded-full cursor-pointer"
+          icon="i-lucide-user"
+          to="/profile"
+        />
+
+        <UButton
+          v-if="isAuthenticated"
+          label="Выйти"
+          color="neutral"
+          variant="ghost"
+          class="font-bold rounded-full cursor-pointer"
+          icon="i-lucide-log-out"
+          @click="onLogout"
         />
       </template>
     </UHeader>
