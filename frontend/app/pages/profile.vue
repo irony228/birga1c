@@ -63,12 +63,26 @@
             type="button"
             color="primary"
             :loading="topUpLoading"
-            :disabled="topUpLoading"
+            :disabled="topUpLoading || fakeTopUpLoading"
             @click="onTopUp"
           >
             Перейти к оплате
           </UButton>
+          <UButton
+            type="button"
+            color="neutral"
+            variant="outline"
+            :loading="fakeTopUpLoading"
+            :disabled="topUpLoading || fakeTopUpLoading"
+            @click="onFakeTopUp"
+          >
+            Фиктивно пополнить
+          </UButton>
         </div>
+
+        <p class="text-xs text-muted">
+          «Фиктивно пополнить» сразу начисляет указанную сумму на баланс без реальной оплаты (удобно для разработки и демо).
+        </p>
 
         <UAlert
           v-if="banner"
@@ -131,6 +145,7 @@ const { me, refresh, pending, formattedBalance, formattedFrozen } = useCurrentUs
 
 const topUpAmount = ref(10000)
 const topUpLoading = ref(false)
+const fakeTopUpLoading = ref(false)
 const banner = ref(null)
 
 onMounted(async () => {
@@ -168,6 +183,32 @@ async function onTopUp() {
     banner.value = { kind: 'error', text: d || 'Не удалось создать платёж' }
   } finally {
     topUpLoading.value = false
+  }
+}
+
+async function onFakeTopUp() {
+  banner.value = null
+  const amount = Number(topUpAmount.value)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    banner.value = { kind: 'error', text: 'Укажите сумму больше нуля' }
+    return
+  }
+  fakeTopUpLoading.value = true
+  try {
+    await $fetch('/api/users/top-up', {
+      method: 'POST',
+      body: { amount }
+    })
+    await refresh()
+    banner.value = { kind: 'success', text: 'Баланс пополнен (фиктивно).' }
+  } catch (err) {
+    const d = err?.data?.detail || err?.response?._data?.detail || err?.message
+    banner.value = {
+      kind: 'error',
+      text: d || 'Не удалось пополнить баланс.'
+    }
+  } finally {
+    fakeTopUpLoading.value = false
   }
 }
 
