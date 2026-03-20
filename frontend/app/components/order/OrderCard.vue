@@ -34,30 +34,167 @@
       </div>
     </div>
 
-    <!-- Футер карточки с действиями -->
+    <!-- Футер: отклик исполнителя на открытый заказ из ленты -->
     <template #footer>
-      <div class="flex gap-2">
+      <!-- Ссылка на страницу заказа для заказчика (отклики) -->
+      <div
+        v-if="showOrderPageLink && !showBidSection"
+        class="flex flex-wrap gap-2"
+      >
         <UButton
+          :to="`/dashboard/orders/${order.id}`"
           color="neutral"
           variant="soft"
-          disabled
+          size="sm"
+          icon="i-lucide-users"
         >
-          Отклик (скоро)
+          Отклики
         </UButton>
+      </div>
+
+      <div
+        v-else-if="showBidSection"
+        class="flex flex-col gap-3"
+      >
+        <div
+          v-if="!bidFormOpen"
+          class="flex flex-wrap gap-2"
+        >
+          <UButton
+            color="primary"
+            icon="i-lucide-send"
+            @click="openBidForm"
+          >
+            Откликнуться
+          </UButton>
+        </div>
+
+        <div
+          v-else
+          class="space-y-3 rounded-lg border border-default p-3"
+        >
+          <UAlert
+            v-if="bidError"
+            color="error"
+            variant="soft"
+            :description="bidError"
+          />
+          <UInput
+            v-model.number="bidPrice"
+            type="number"
+            label="Ваша цена (руб.)"
+            :min="0"
+            step="1"
+            required
+          />
+          <UTextarea
+            v-model="bidComment"
+            label="Комментарий к отклику"
+            placeholder="Сроки, опыт, детали..."
+            :rows="3"
+          />
+          <div class="flex flex-wrap gap-2">
+            <UButton
+              color="primary"
+              :loading="bidSubmitting"
+              :disabled="bidSubmitting"
+              @click="submitBid"
+            >
+              Отправить отклик
+            </UButton>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :disabled="bidSubmitting"
+              @click="cancelBidForm"
+            >
+              Отмена
+            </UButton>
+          </div>
+        </div>
       </div>
     </template>
   </UCard>
 </template>
 
 <script setup>
-import { defineProps, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
-defineProps({
+const props = defineProps({
   order: {
     type: Object,
     required: true
+  },
+  /** Показать отклик (только для исполнителя в зоне открытых заказов) */
+  showBidButton: {
+    type: Boolean,
+    default: false
+  },
+  /** Ссылка «Отклики» на страницу заказа (заказчик) */
+  showOrderPageLink: {
+    type: Boolean,
+    default: false
   }
 })
+
+const emit = defineEmits(['bid-submitted'])
+
+const showBidSection = computed(() => {
+  return props.showBidButton && props.order.statusKey === 'open'
+})
+
+const bidFormOpen = ref(false)
+const bidPrice = ref(null)
+const bidComment = ref('')
+const bidSubmitting = ref(false)
+const bidError = ref('')
+
+watch(
+  () => props.order.id,
+  () => {
+    bidFormOpen.value = false
+    bidError.value = ''
+  }
+)
+
+function openBidForm() {
+  bidError.value = ''
+  bidPrice.value = Number(props.order.budget) || null
+  bidComment.value = ''
+  bidFormOpen.value = true
+}
+
+function cancelBidForm() {
+  bidFormOpen.value = false
+  bidError.value = ''
+}
+
+async function submitBid() {
+  const price = Number(bidPrice.value)
+  if (!Number.isFinite(price) || price <= 0) {
+    bidError.value = 'Укажите цену больше нуля'
+    return
+  }
+
+  bidSubmitting.value = true
+  bidError.value = ''
+
+  try {
+    await $fetch(`/api/bids/${props.order.id}`, {
+      method: 'POST',
+      body: {
+        price,
+        comment: bidComment.value.trim() || ''
+      }
+    })
+    bidFormOpen.value = false
+    emit('bid-submitted')
+  } catch (err) {
+    bidError.value = err?.data?.detail || err?.response?._data?.detail || err?.message || 'Не удалось отправить отклик'
+  } finally {
+    bidSubmitting.value = false
+  }
+}
 
 const statusClass = (status) => {
   switch (status) {

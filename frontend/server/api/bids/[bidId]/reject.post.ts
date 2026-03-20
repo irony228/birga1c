@@ -1,5 +1,13 @@
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
+  const bidId = getRouterParam(event, 'bidId')
+  if (!bidId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Bad Request',
+      data: { detail: 'Не указан отклик' }
+    })
+  }
+
   const config = useRuntimeConfig()
   const accessToken = getCookie(event, 'access_token')
 
@@ -7,13 +15,12 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 401,
       statusMessage: 'Unauthorized',
-      data: { detail: 'Нужно авторизоваться, чтобы создать заказ' }
+      data: { detail: 'Нужно войти в аккаунт' }
     })
   }
 
-  return await $fetch(`${config.public.apiBase}/orders/`, {
+  return await $fetch(`${config.public.apiBase}/bids/${bidId}/reject`, {
     method: 'POST',
-    body,
     headers: {
       Authorization: `Bearer ${accessToken}`
     }

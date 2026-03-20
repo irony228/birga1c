@@ -86,6 +86,19 @@ class BidResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class BidWithWorkerResponse(BaseModel):
+    """Отклик с данными исполнителя (для страницы заказа заказчика)."""
+    id: int
+    order_id: int
+    worker_id: int
+    worker_name: Optional[str] = None
+    worker_email: Optional[str] = None
+    price: float
+    comment: Optional[str] = None
+    status: BidStatusEnum
+    created_at: datetime
+
 class NotificationResponse(BaseModel):
     id: int
     user_id: int

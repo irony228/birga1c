@@ -101,6 +101,28 @@ async def get_orders(
     result = await db.execute(query.order_by(Order.created_at.desc()))
     return result.scalars().all()
 
+
+@router.get("/{order_id}", response_model=OrderResponse)
+# Один заказ: только владелец-заказчик.
+async def get_order_by_id(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != RoleEnum.customer:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Просматривать карточку заказа таким образом может только заказчик",
+        )
+    result = await db.execute(select(Order).where(Order.id == order_id))
+    order = result.scalars().first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+    if order.customer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Это не ваш заказ")
+    return order
+
+
 @router.post("/{order_id}/accept/{bid_id}")
 # Выбирает исполнителя: переводит деньги в заморозку и статус в в работе.
 async def accept_bid(
