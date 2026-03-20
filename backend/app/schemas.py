@@ -27,6 +27,10 @@ class UserCreate(BaseModel):
             raise ValueError("password must be <= 72 bytes for bcrypt")
         return v
 
+class TopUpRequest(BaseModel):
+    amount: float
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str

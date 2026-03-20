@@ -4,7 +4,7 @@
     <template #header>
       <div class="flex justify-between items-start">
         <h2 class="text-lg font-semibold">
-          <ULink :to="`dashboard/orders/${order.id}`">{{ order.title }}</ULink>
+          <ULink :to="`/dashboard/orders/${order.id}`">{{ order.title }}</ULink>
         </h2>
         <span
           :class="statusClass(order.status)"
@@ -36,26 +36,27 @@
 
     <!-- Футер: отклик исполнителя на открытый заказ из ленты -->
     <template #footer>
-      <!-- Ссылка на страницу заказа для заказчика (отклики) -->
-      <div
-        v-if="showOrderPageLink && !showBidSection"
-        class="flex flex-wrap gap-2"
-      >
-        <UButton
-          :to="`/dashboard/orders/${order.id}`"
-          color="neutral"
-          variant="soft"
-          size="sm"
-          icon="i-lucide-users"
+      <div class="flex flex-col gap-3">
+        <!-- Ссылка на страницу заказа для заказчика (отклики) -->
+        <div
+          v-if="showOrderPageLink && !showBidSection"
+          class="flex flex-wrap gap-2"
         >
-          Отклики
-        </UButton>
-      </div>
+          <UButton
+            :to="`/dashboard/orders/${order.id}`"
+            color="neutral"
+            variant="soft"
+            size="sm"
+            icon="i-lucide-users"
+          >
+            Отклики
+          </UButton>
+        </div>
 
-      <div
-        v-else-if="showBidSection"
-        class="flex flex-col gap-3"
-      >
+        <div
+          v-else-if="showBidSection"
+          class="flex flex-col gap-3"
+        >
         <div
           v-if="!bidFormOpen"
           class="flex flex-wrap gap-2"
@@ -112,6 +113,32 @@
             </UButton>
           </div>
         </div>
+        </div>
+
+        <!-- Завершение заказа исполнителем (зона «В работе») -->
+        <div
+          v-if="showWorkerCompleteSection"
+          class="flex flex-wrap items-center gap-2"
+        >
+          <UButton
+            color="primary"
+            variant="soft"
+            size="sm"
+            icon="i-lucide-circle-check"
+            :loading="completing"
+            :disabled="completing"
+            @click="completeOrder"
+          >
+            Завершить заказ
+          </UButton>
+        </div>
+
+        <UAlert
+          v-if="completeError"
+          color="error"
+          variant="soft"
+          :description="completeError"
+        />
       </div>
     </template>
   </UCard>
@@ -134,13 +161,27 @@ const props = defineProps({
   showOrderPageLink: {
     type: Boolean,
     default: false
+  },
+  /** Кнопка «Завершить заказ» для исполнителя (заказ в работе) */
+  showWorkerCompleteButton: {
+    type: Boolean,
+    default: false
+  },
+  /** Плотная карточка (колонки ленты) — зарезервировано под стили */
+  compact: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['bid-submitted'])
+const emit = defineEmits(['bid-submitted', 'order-completed'])
 
 const showBidSection = computed(() => {
   return props.showBidButton && props.order.statusKey === 'open'
+})
+
+const showWorkerCompleteSection = computed(() => {
+  return props.showWorkerCompleteButton && props.order.statusKey === 'in_progress'
 })
 
 const bidFormOpen = ref(false)
@@ -148,12 +189,15 @@ const bidPrice = ref(null)
 const bidComment = ref('')
 const bidSubmitting = ref(false)
 const bidError = ref('')
+const completing = ref(false)
+const completeError = ref('')
 
 watch(
   () => props.order.id,
   () => {
     bidFormOpen.value = false
     bidError.value = ''
+    completeError.value = ''
   }
 )
 
@@ -193,6 +237,23 @@ async function submitBid() {
     bidError.value = err?.data?.detail || err?.response?._data?.detail || err?.message || 'Не удалось отправить отклик'
   } finally {
     bidSubmitting.value = false
+  }
+}
+
+async function completeOrder() {
+  completeError.value = ''
+  completing.value = true
+  try {
+    await $fetch(`/api/orders/${props.order.id}/complete`, { method: 'POST' })
+    emit('order-completed')
+  } catch (err) {
+    completeError.value =
+      err?.data?.detail ||
+      err?.response?._data?.detail ||
+      err?.message ||
+      'Не удалось завершить заказ'
+  } finally {
+    completing.value = false
   }
 }
 

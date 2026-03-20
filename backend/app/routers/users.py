@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 
 from app.database import get_db
 from app.models import User
-from app.schemas import UserCreate, UserResponse, UserLogin, Token
+from app.schemas import UserCreate, UserResponse, UserLogin, Token, TopUpRequest
 from app.auth import get_password_hash, verify_password, create_access_token
 from app.auth import get_current_user 
 
@@ -59,15 +59,16 @@ async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/top-up", response_model=UserResponse)
-# Пополняет баланс текущего пользователя.
+# Пополняет баланс текущего пользователя (тело JSON: { "amount": 1000 }).
 async def top_up_balance(
-    amount: float, 
+    body: TopUpRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
+    amount = body.amount
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Сумма должна быть больше нуля")
-    
+
     current_user.balance += amount
     await db.commit()
     await db.refresh(current_user)

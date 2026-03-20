@@ -177,7 +177,8 @@ async def accept_bid(
     return {"message": "Исполнитель выбран, средства заморожены", "order_status": order.status.value}
 
 @router.post("/{order_id}/complete")
-# Завершает заказ: размораживает деньги, закрывает заказ и создаёт уведомление.
+# Завершает заказ: размораживает деньги у заказчика, зачисляет исполнителю, закрывает заказ.
+# Инициировать могут: владелец-заказчик или назначенный исполнитель.
 async def complete_order(
     order_id: int, 
     db: AsyncSession = Depends(get_db),
@@ -187,33 +188,63 @@ async def complete_order(
     result = await db.execute(select(Order).where(Order.id == order_id))
     order = result.scalars().first()
     
-    if not order or order.customer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Это не ваш заказ")
+    if not order:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
     if order.status != OrderStatus.in_progress:
         raise HTTPException(status_code=400, detail="Заказ еще не в работе или уже закрыт")
 
-    
+    customer_result = await db.execute(select(User).where(User.id == order.customer_id))
+    customer = customer_result.scalars().first()
     worker_result = await db.execute(select(User).where(User.id == order.worker_id))
     worker = worker_result.scalars().first()
 
-    if not worker:
-        raise HTTPException(status_code=404, detail="Исполнитель не найден")
+    if not customer or not worker:
+        raise HTTPException(status_code=404, detail="Заказчик или исполнитель не найден")
 
-    
-    current_user.frozen_balance -= order.budget
+    is_customer_owner = current_user.role == RoleEnum.customer and customer.id == current_user.id
+    is_assigned_worker = current_user.role == RoleEnum.worker and worker.id == current_user.id
+    if not (is_customer_owner or is_assigned_worker):
+        raise HTTPException(
+            status_code=403,
+            detail="Завершить заказ может только заказчик или назначенный исполнитель",
+        )
+
+    customer.frozen_balance -= order.budget
     worker.balance += order.budget
-
-    
     order.status = OrderStatus.closed
 
-    
-    notification = Notification(
-        user_id=worker.id,
-        message=f"Заказ '{order.title}' успешно завершен! На ваш баланс зачислено {order.budget} руб."
-    )
-    db.add(notification)
+    if is_assigned_worker:
+        db.add(
+            Notification(
+                user_id=customer.id,
+                message=(
+                    f"Исполнитель завершил заказ «{order.title}». "
+                    f"С заморозки списано {order.budget} руб. в пользу исполнителя."
+                ),
+            )
+        )
+        db.add(
+            Notification(
+                user_id=worker.id,
+                message=(
+                    f"Заказ «{order.title}» отмечен как выполненный. "
+                    f"На баланс зачислено {order.budget} руб."
+                ),
+            )
+        )
+    else:
+        db.add(
+            Notification(
+                user_id=worker.id,
+                message=(
+                    f"Заказ '{order.title}' успешно завершен! "
+                    f"На ваш баланс зачислено {order.budget} руб."
+                ),
+            )
+        )
 
     await db.commit()
+    await db.refresh(worker)
     return {"message": "Заказ завершен, средства переведены", "worker_new_balance": worker.balance}
 
 

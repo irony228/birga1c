@@ -157,6 +157,8 @@
                     :key="order.id"
                     :order="order"
                     compact
+                    show-worker-complete-button
+                    @order-completed="onOrderCompleted"
                   />
                 </div>
               </UScrollArea>
@@ -273,6 +275,11 @@ const { data, pending, error, refresh } = await useAsyncData('orders-feed', fetc
 
 async function onBidSubmitted() {
   await refresh()
+}
+
+async function onOrderCompleted() {
+  await refresh()
+  await refreshNuxtData('current-user')
 }
 
 const statusLabelMap = {

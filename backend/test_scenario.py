@@ -151,8 +151,7 @@ def main() -> int:
             method="POST",
             path="/users/top-up",
             token=customer_token,
-            params={"amount": probe_amount},
-            json_body=None,
+            json_body={"amount": probe_amount},
         )
         probe_balance = float(probe_resp.get("balance"))
         current_balance = probe_balance - probe_amount
@@ -178,8 +177,7 @@ def main() -> int:
                     method="POST",
                     path="/users/top-up",
                     token=customer_token,
-                    params={"amount": needed},
-                    json_body=None,
+                    json_body={"amount": needed},
                 )
             else:
                 final_resp = probe_resp
