@@ -2,6 +2,33 @@
 import { computed } from 'vue'
 
 const { me, formattedBalance, formattedFrozen, refresh: refreshMe, pending: userMePending } = useCurrentUser()
+const {
+  notifications,
+  refresh: refreshNotifications,
+  pending: notificationsPending,
+  unreadCount,
+  markAsRead
+} = useNotifications()
+
+function formatNotificationTime(iso) {
+  if (!iso) return ''
+  try {
+    return new Date(iso).toLocaleString('ru-RU', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return ''
+  }
+}
+
+async function onNotificationsOpen(open) {
+  if (open) {
+    await refreshNotifications()
+  }
+}
 
 useHead({
   meta: [
@@ -100,6 +127,66 @@ async function onLogout() {
 
       <template #right>
         <UColorModeButton />
+        <UPopover
+          v-if="isAuthenticated"
+          :content="{ side: 'bottom', align: 'end' }"
+          @update:open="onNotificationsOpen"
+        >
+          <div class="relative inline-flex shrink-0">
+            <UButton
+              variant="ghost"
+              color="neutral"
+              icon="i-lucide-bell"
+              square
+              aria-label="Уведомления"
+              class="font-bold cursor-pointer"
+            />
+            <span
+              v-if="unreadCount > 0"
+              class="pointer-events-none absolute -top-0.5 -right-0.5 min-w-4 h-4 px-0.5 flex items-center justify-center rounded-full bg-error text-[10px] font-bold text-inverted tabular-nums leading-none"
+            >
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </span>
+          </div>
+          <template #content>
+            <div class="w-[min(22rem,calc(100vw-2rem))] max-h-80 flex flex-col">
+              <div class="px-3 py-2 border-b border-default text-sm font-semibold text-highlighted">
+                Уведомления
+              </div>
+              <div class="overflow-y-auto overflow-x-hidden flex-1 min-h-0">
+                <div
+                  v-if="notificationsPending"
+                  class="px-3 py-6 text-center text-sm text-muted"
+                >
+                  Загрузка…
+                </div>
+                <template v-else-if="notifications?.length">
+                  <button
+                    v-for="n in notifications"
+                    :key="n.id"
+                    type="button"
+                    class="w-full text-left px-3 py-2.5 border-b border-default last:border-b-0 hover:bg-elevated/50 transition-colors flex flex-col gap-0.5"
+                    :class="n.is_read ? 'opacity-70' : 'bg-elevated/30'"
+                    @click="markAsRead(n.id)"
+                  >
+                    <span class="text-sm text-default leading-snug break-words">
+                      {{ n.message }}
+                    </span>
+                    <span class="text-xs text-muted tabular-nums">
+                      {{ formatNotificationTime(n.created_at) }}
+                    </span>
+                  </button>
+                </template>
+                <div
+                  v-else
+                  class="px-3 py-6 text-center text-sm text-muted"
+                >
+                  Пока нет уведомлений
+                </div>
+              </div>
+            </div>
+          </template>
+        </UPopover>
         <!-- TODO сделать проверку на текущего пользователя -->
         <!-- что-то типа div v-if="currentUser" -->
         <!-- UDropdownMenu с профиль мои-заказы выйти -->

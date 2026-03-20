@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.config import settings
 from app.database import get_db
 from app.models import User
 from app.schemas import UserCreate, UserResponse, UserLogin, Token, TopUpRequest
@@ -59,12 +60,17 @@ async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/top-up", response_model=UserResponse)
-# Пополняет баланс текущего пользователя (тело JSON: { "amount": 1000 }).
+# Пополняет баланс без ЮKassa только если ALLOW_FAKE_TOPUP=true.
 async def top_up_balance(
     body: TopUpRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if not settings.allow_fake_topup:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Используйте пополнение через ЮKassa в профиле.",
+        )
     amount = body.amount
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Сумма должна быть больше нуля")

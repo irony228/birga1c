@@ -47,6 +47,10 @@
           Замороженные средства удерживаются по активным заказам до завершения или отмены.
         </p>
 
+        <p class="text-sm text-muted">
+          Оплата через ЮKassa: откроется страница банка. Зачисление — после успешной оплаты (мгновенно после уведомления от ЮKassa).
+        </p>
+
         <div class="flex flex-wrap gap-2 items-end">
           <UInput
             v-model.number="topUpAmount"
@@ -62,7 +66,7 @@
             :disabled="topUpLoading"
             @click="onTopUp"
           >
-            Пополнить
+            Перейти к оплате
           </UButton>
         </div>
 
@@ -120,32 +124,48 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
+const route = useRoute()
 const { me, refresh, pending, formattedBalance, formattedFrozen } = useCurrentUser()
 
 const topUpAmount = ref(10000)
 const topUpLoading = ref(false)
 const banner = ref(null)
 
+onMounted(async () => {
+  if (route.query.yookassa !== 'return') {
+    return
+  }
+  await refresh()
+  banner.value = {
+    kind: 'success',
+    text: 'Если оплата прошла успешно, баланс обновится автоматически. При необходимости обновите страницу через минуту.'
+  }
+})
+
 async function onTopUp() {
   banner.value = null
   const amount = Number(topUpAmount.value)
   if (!Number.isFinite(amount) || amount <= 0) {
     banner.value = { kind: 'error', text: 'Укажите сумму больше нуля' }
-    return
+             return
   }
   topUpLoading.value = true
   try {
-    await $fetch('/api/users/top-up', {
+    const res = await $fetch('/api/payments/yookassa/top-up', {
       method: 'POST',
       body: { amount }
     })
-    await refresh()
-    banner.value = { kind: 'success', text: 'Баланс пополнен.' }
+    const url = res?.confirmation_url
+    if (url) {
+      window.location.href = url
+      return
+    }
+    banner.value = { kind: 'error', text: 'Не получена ссылка на оплату' }
   } catch (err) {
     const d = err?.data?.detail || err?.response?._data?.detail || err?.message
-    banner.value = { kind: 'error', text: d || 'Не удалось пополнить' }
+    banner.value = { kind: 'error', text: d || 'Не удалось создать платёж' }
   } finally {
     topUpLoading.value = false
   }

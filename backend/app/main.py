@@ -1,7 +1,13 @@
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from sqlalchemy import text
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
 from app.database import engine, Base
-from app.routers import users, orders, bids, notifications
+from app.routers import bids, notifications, orders, payments, users
 
 app = FastAPI(title="Биржа 1С")
 
@@ -9,6 +15,7 @@ app.include_router(users.router)
 app.include_router(orders.router)
 app.include_router(bids.router)
 app.include_router(notifications.router)
+app.include_router(payments.router)
 
 @app.on_event("startup")
 async def startup():

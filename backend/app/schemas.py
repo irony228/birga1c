@@ -31,6 +31,11 @@ class TopUpRequest(BaseModel):
     amount: float
 
 
+class YooKassaTopUpResponse(BaseModel):
+    confirmation_url: str
+    internal_payment_id: int
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
