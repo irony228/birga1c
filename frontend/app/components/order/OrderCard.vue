@@ -4,7 +4,7 @@
     <template #header>
       <div class="flex justify-between items-start">
         <h2 class="text-lg font-semibold">
-          {{ order.title }}
+          <ULink :to="`dashboard/orders/${order.id}`">{{ order.title }}</ULink>
         </h2>
         <span
           :class="statusClass(order.status)"
