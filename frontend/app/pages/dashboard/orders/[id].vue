@@ -179,9 +179,11 @@ const { data, pending, error, refresh } = await useAsyncData(
     if (!id) {
       return null
     }
+    // SSR: обычный $fetch не пробрасывает Cookie → 401 на /api/*. См. useRequestFetch в доке Nuxt.
+    const requestFetch = useRequestFetch()
     const [order, bids] = await Promise.all([
-      $fetch(`/api/orders/${id}`),
-      $fetch(`/api/bids/${id}`)
+      requestFetch(`/api/orders/${id}`),
+      requestFetch(`/api/bids/${id}`)
     ])
     return {
       order,
