@@ -11,6 +11,12 @@ from app.auth import get_current_user
 router = APIRouter(prefix="/users", tags=["Users (Регистрация и профиль)"])
 
 
+@router.get("/me", response_model=UserResponse)
+# Текущий пользователь (баланс, роль и т.д.) — по JWT.
+async def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
 @router.post("/register", response_model=UserResponse)
 # Регистрирует пользователя в системе.
 async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):

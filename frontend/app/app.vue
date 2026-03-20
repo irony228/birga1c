@@ -1,6 +1,8 @@
 <script setup>
 import { computed } from 'vue'
 
+const { me, formattedBalance, formattedFrozen, refresh: refreshMe, pending: userMePending } = useCurrentUser()
+
 useHead({
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
@@ -29,21 +31,48 @@ const isAuthenticated = computed(() => {
   return typeof token === 'string' && token.trim() !== '' && token !== 'null'
 })
 
-const menuItems = [
-  {
-    label: 'Профиль',
-    icon: 'i-lucide-user',
-    to: '/profile'
-  },
-  {
-    label: 'Выйти',
-    icon: 'i-lucide-log-out',
-    onSelect: onLogout
+const menuItems = computed(() => {
+  const bal = userMePending.value && isAuthenticated.value ? '…' : formattedBalance.value
+  const head = [
+    {
+      label: `Баланс: ${bal}`,
+      icon: 'i-lucide-wallet',
+      disabled: true
+    }
+  ]
+  if (me.value != null) {
+    head.push({
+      label: `Заморожено: ${formattedFrozen.value}`,
+      icon: 'i-lucide-lock',
+      disabled: true
+    })
+  } else if (userMePending.value && isAuthenticated.value) {
+    head.push({
+      label: 'Заморожено: …',
+      icon: 'i-lucide-lock',
+      disabled: true
+    })
   }
-]
+  return [
+    head,
+    [
+      {
+        label: 'Профиль',
+        icon: 'i-lucide-user',
+        to: '/profile'
+      },
+      {
+        label: 'Выйти',
+        icon: 'i-lucide-log-out',
+        onSelect: onLogout
+      }
+    ]
+  ]
+})
 
 async function onLogout() {
   accessToken.value = undefined
+  await refreshMe()
   await navigateTo('/')
 }
 </script>
@@ -86,25 +115,35 @@ async function onLogout() {
           to="/login"
         />
 
-        <UDropdownMenu
+        <div
           v-if="isAuthenticated"
-          :items="menuItems"
-          :content="{
-            align: 'end',
-            side: 'bottom'
-          }"
+          class="flex items-center gap-2 shrink-0"
         >
-          <UButton
-            variant="ghost"
-            color="neutral"
-            icon="i-lucide-user"
-            aria-label="Меню пользователя"
-            class="font-bold cursor-pointer"
-            trailing-icon="i-lucide-chevron-down"
+          <span
+            class="hidden min-[380px]:inline text-xs sm:text-sm font-semibold tabular-nums text-default max-w-[6rem] sm:max-w-none truncate"
+            :title="`${userMePending ? '…' : formattedBalance} · заморожено ${userMePending && !me ? '…' : formattedFrozen}`"
           >
-            Профиль
-          </UButton>
-        </UDropdownMenu>
+            {{ userMePending ? '…' : formattedBalance }}
+          </span>
+          <UDropdownMenu
+            :items="menuItems"
+            :content="{
+              align: 'end',
+              side: 'bottom'
+            }"
+          >
+            <UButton
+              variant="ghost"
+              color="neutral"
+              icon="i-lucide-user"
+              aria-label="Меню пользователя"
+              class="font-bold cursor-pointer"
+              trailing-icon="i-lucide-chevron-down"
+            >
+              Профиль
+            </UButton>
+          </UDropdownMenu>
+        </div>
       </template>
     </UHeader>
 
@@ -117,7 +156,16 @@ async function onLogout() {
     <UFooter>
       <template #left>
         <p class="text-sm text-muted">
-          Created by <ULink to="https://github.com/babuwka0" target="_blank">Babuwka0</ULink> <ULink to="https://github.com/Tregyn-codein" target="_blank">Tregyn</ULink> <ULink to="https://github.com/irony228" target="_blank">Irony</ULink> • © {{ new Date().getFullYear() }}
+          Created by <ULink
+            to="https://github.com/babuwka0"
+            target="_blank"
+          >Babuwka0</ULink> <ULink
+            to="https://github.com/Tregyn-codein"
+            target="_blank"
+          >Tregyn</ULink> <ULink
+            to="https://github.com/irony228"
+            target="_blank"
+          >Irony</ULink> • © {{ new Date().getFullYear() }}
         </p>
       </template>
 
